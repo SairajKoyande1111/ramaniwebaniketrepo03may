@@ -75,50 +75,37 @@ export function extractCategoryImageUrls(category: any): string[] {
   return urls;
 }
 
-async function compressImage(buffer: Buffer, originalName: string): Promise<{ buffer: Buffer; ext: string }> {
+async function compressImage(buffer: Buffer, originalName: string): Promise<{ buffer: Buffer; ext: string; method: string }> {
   const TARGET_MIN = 600 * 1024;  // 600 KB
   const TARGET_MAX = 1024 * 1024; // 1 MB
-  const originalSizeKB = (buffer.length / 1024).toFixed(1);
-
-  // Always output as JPEG for consistent compression
   const ext = ".jpg";
 
   // Already within 600KB–1MB: keep as-is
   if (buffer.length >= TARGET_MIN && buffer.length <= TARGET_MAX) {
-    console.log(`[Compress] ${originalName} — ${originalSizeKB} KB already in target range, keeping as-is`);
-    return { buffer, ext };
+    return { buffer, ext, method: "no compression needed (already in 600 KB–1 MB range)" };
   }
 
   // Under 600KB: keep as-is (never upscale/inflate)
   if (buffer.length < TARGET_MIN) {
-    console.log(`[Compress] ${originalName} — ${originalSizeKB} KB (under 600 KB, keeping as-is)`);
-    return { buffer, ext };
+    return { buffer, ext, method: "no compression needed (under 600 KB)" };
   }
 
-  // Over 1MB: compress to target range using quality reduction only (no resize, preserves pixel count)
-  // We use standard JPEG (no mozjpeg) to avoid overshooting compression
+  // Over 1MB: try quality reduction first (full resolution preserved)
   const qualityOnlyLevels = [85, 82, 78, 75];
   for (const quality of qualityOnlyLevels) {
     const compressed = await sharp(buffer)
       .rotate()
       .jpeg({ quality })
       .toBuffer();
-    const kb = (compressed.length / 1024).toFixed(0);
-    console.log(`[Compress] ${originalName} — quality ${quality} (full-res) → ${kb} KB`);
     if (compressed.length >= TARGET_MIN && compressed.length <= TARGET_MAX) {
-      console.log(`[Compress] ✓ ${originalName} — saved at ${kb} KB (quality ${quality}, full resolution)`);
-      return { buffer: compressed, ext };
+      return { buffer: compressed, ext, method: `quality reduction → q${quality} (full resolution)` };
     }
-    // If we already dropped below target min, don't go lower quality — use previous result
     if (compressed.length < TARGET_MIN) {
-      // Previous quality was too aggressive; use this one since it's the first under 1MB
-      console.log(`[Compress] ✓ ${originalName} — saved at ${kb} KB (quality ${quality}, full resolution, slightly under 600 KB)`);
-      return { buffer: compressed, ext };
+      return { buffer: compressed, ext, method: `quality reduction → q${quality} (full resolution, slightly under 600 KB)` };
     }
   }
 
-  // Still over 1MB after quality reduction: try resizing (larger dimensions first to preserve quality)
-  // Strategy: maintain quality 85, reduce width progressively until we hit 600KB–1MB
+  // Still over 1MB: try resizing progressively
   const metadata = await sharp(buffer).metadata();
   const originalWidth = metadata.width || 4000;
 
@@ -131,29 +118,24 @@ async function compressImage(buffer: Buffer, originalName: string): Promise<{ bu
   ];
 
   for (const { maxWidth, quality } of resizeSteps) {
-    if (originalWidth <= maxWidth) continue; // No point resizing to larger
+    if (originalWidth <= maxWidth) continue;
     const resized = await sharp(buffer)
       .rotate()
       .resize({ width: maxWidth, withoutEnlargement: true })
       .jpeg({ quality })
       .toBuffer();
-    const kb = (resized.length / 1024).toFixed(0);
-    console.log(`[Compress] ${originalName} — resize to ${maxWidth}px q${quality} → ${kb} KB`);
     if (resized.length <= TARGET_MAX) {
-      console.log(`[Compress] ✓ ${originalName} — saved at ${kb} KB (${maxWidth}px, quality ${quality})`);
-      return { buffer: resized, ext };
+      return { buffer: resized, ext, method: `resize to ${maxWidth}px + q${quality}` };
     }
   }
 
-  // Final fallback: 1600px quality 80 — covers extreme cases
+  // Final fallback
   const fallback = await sharp(buffer)
     .rotate()
     .resize({ width: 1600, withoutEnlargement: true })
     .jpeg({ quality: 80 })
     .toBuffer();
-  const kb = (fallback.length / 1024).toFixed(0);
-  console.log(`[Compress] ✓ ${originalName} — fallback saved at ${kb} KB (1600px, quality 80)`);
-  return { buffer: fallback, ext };
+  return { buffer: fallback, ext, method: "fallback resize to 1600px + q80" };
 }
 
 export async function saveImageLocally(
@@ -161,20 +143,33 @@ export async function saveImageLocally(
   originalName: string,
   oldUrl?: string,
 ): Promise<string> {
+  const incomingKB  = (buffer.length / 1024).toFixed(1);
+  const incomingMB  = (buffer.length / 1024 / 1024).toFixed(2);
+
+  console.log(`\n┌─ [Image Upload] ──────────────────────────────`);
+  console.log(`│  File        : ${originalName}`);
+  console.log(`│  Received    : ${incomingMB} MB (${incomingKB} KB)`);
+  console.log(`│  Upload limit: 50 MB  |  Compress target: ≤ 1 MB`);
+
   if (oldUrl) {
+    console.log(`│  Replacing   : ${oldUrl}`);
     deleteLocalImage(oldUrl);
   }
 
-  const { buffer: compressedBuffer, ext } = await compressImage(buffer, originalName);
+  const { buffer: compressedBuffer, ext, method } = await compressImage(buffer, originalName);
+
+  const finalKB = (compressedBuffer.length / 1024).toFixed(1);
+  const finalMB = (compressedBuffer.length / 1024 / 1024).toFixed(2);
+  const saving  = (((buffer.length - compressedBuffer.length) / buffer.length) * 100).toFixed(1);
 
   const filename = randomBytes(16).toString("hex") + ext;
   const destPath = getLocalPath(filename);
-
   fs.writeFileSync(destPath, compressedBuffer);
 
-  const sizeKB = (compressedBuffer.length / 1024).toFixed(0);
-  const sizeMB = (compressedBuffer.length / 1024 / 1024).toFixed(2);
-  console.log(`[LocalStorage] Saved: ${filename} — ${sizeKB} KB (${sizeMB} MB)`);
+  console.log(`│  Compression : ${method}`);
+  console.log(`│  Before → After: ${incomingMB} MB → ${finalMB} MB (${finalKB} KB)  [saved ${saving}%]`);
+  console.log(`│  Saved as    : /images/${filename}`);
+  console.log(`└───────────────────────────────────────────────\n`);
 
   return `/images/${filename}`;
 }
