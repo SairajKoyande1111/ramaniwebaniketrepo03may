@@ -2272,7 +2272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     upload.array('images', 5)(req, res, async (err: any) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File too large (max 50MB per file)' });
+          return res.status(400).json({ error: 'File too large (max 100MB per file)' });
         }
         if (err.code === 'LIMIT_FILE_COUNT') {
           return res.status(400).json({ error: 'Too many files (max 5 files)' });
@@ -4442,7 +4442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ])(req, res, (err: any) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File too large (max 50MB per file)' });
+          return res.status(400).json({ error: 'File too large (max 100MB per file)' });
         }
         return res.status(400).json({ error: err.message });
       } else if (err) {

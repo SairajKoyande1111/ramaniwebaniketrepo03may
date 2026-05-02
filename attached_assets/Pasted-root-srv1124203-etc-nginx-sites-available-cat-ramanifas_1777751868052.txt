@@ -1,0 +1,92 @@
+root@srv1124203:/etc/nginx/sites-available# cat ramanifashion
+server {
+    server_name ramanifashion.in www.ramanifashion.in;
+
+    # Global upload limit
+    client_max_body_size 100M;
+
+    # Increase timeouts for large file uploads
+    proxy_connect_timeout 120s;
+    proxy_send_timeout    120s;
+    proxy_read_timeout    120s;
+
+    root /root/RamanifashionV3/dist/public;
+    index index.html;
+
+    # Serve frontend static files
+    location / {
+        try_files $uri $uri/ @fallback;
+    }
+
+    location @fallback {
+        rewrite ^ /index.html last;
+    }
+
+    # API — proxy to Express (increased upload limit)
+    location /api {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+
+        # Must match the global limit — was 10M before, causing 413 errors
+        client_max_body_size 100M;
+    }
+
+    # Uploaded product/category images — served from Express
+    location /images {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+    }
+
+    # Media files (hero banners, videos) — served from Express
+    location /media {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+    }
+
+    location /payment-callback {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+        client_max_body_size 50M;
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/ramanifashion.in/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ramanifashion.in/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    if ($host = www.ramanifashion.in) {
+        return 301 https://$host$request_uri;
+    }
+    if ($host = ramanifashion.in) {
+        return 301 https://$host$request_uri;
+    }
+    listen 80;
+    server_name ramanifashion.in www.ramanifashion.in;
+    return 404;
+}
+root@srv1124203:/etc/nginx/sites-available#

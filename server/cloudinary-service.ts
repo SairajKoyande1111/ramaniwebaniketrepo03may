@@ -149,7 +149,7 @@ export async function saveImageLocally(
   console.log(`\n┌─ [Image Upload] ──────────────────────────────`);
   console.log(`│  File        : ${originalName}`);
   console.log(`│  Received    : ${incomingMB} MB (${incomingKB} KB)`);
-  console.log(`│  Upload limit: 50 MB  |  Compress target: ≤ 1 MB`);
+  console.log(`│  Upload limit: 100 MB  |  Compress target: ≤ 1 MB`);
 
   if (oldUrl) {
     console.log(`│  Replacing   : ${oldUrl}`);
