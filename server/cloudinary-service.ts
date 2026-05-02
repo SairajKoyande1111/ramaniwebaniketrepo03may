@@ -156,7 +156,7 @@ async function compressImage(buffer: Buffer, originalName: string): Promise<{ bu
   return { buffer: fallback, ext };
 }
 
-export async function uploadToCloudinary(
+export async function saveImageLocally(
   buffer: Buffer,
   originalName: string,
   oldUrl?: string,

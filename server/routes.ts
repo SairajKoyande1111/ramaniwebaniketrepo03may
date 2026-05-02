@@ -10,7 +10,7 @@ import path from "path";
 import fs from "fs";
 import XLSX from "xlsx";
 import { upload, mediaUpload } from "./upload-config";
-import { uploadToCloudinary, deleteLocalImages, extractProductImageUrls, extractCategoryImageUrls } from "./cloudinary-service";
+import { saveImageLocally, deleteLocalImages, extractProductImageUrls, extractCategoryImageUrls } from "./cloudinary-service";
 import { sendSMSOTP, generateOTP, sendOrderConfirmationSMS, sendPaymentFailureSMS, sendOrderAcceptedSMS, sendOrderCancelledSMS, sendOrderShippedSMS, sendOrderDeliveredSMS } from "./sms-service";
 import { sendOrderConfirmation } from "./whatsapp-service";
 import { phonePeService } from "./phonepe-service";
@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const existingCategory = await Category.findById(req.params.id);
         const oldUrl = existingCategory?.image || "";
-        const url = await uploadToCloudinary(req.file.buffer, req.file.originalname, oldUrl);
+        const url = await saveImageLocally(req.file.buffer, req.file.originalname, oldUrl);
         const category = await Category.findByIdAndUpdate(
           req.params.id,
           { image: url, updatedAt: new Date() },
@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
         let imageUrl = "";
         if (req.file) {
-          imageUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+          imageUrl = await saveImageLocally(req.file.buffer, req.file.originalname);
         }
 
         const category = await Category.findById(req.params.id);
@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (req.file) {
           const oldSubUrl = subs[idx].image || "";
-          subs[idx].image = await uploadToCloudinary(req.file.buffer, req.file.originalname, oldSubUrl);
+          subs[idx].image = await saveImageLocally(req.file.buffer, req.file.originalname, oldSubUrl);
         }
         category.subCategories = subs;
         category.markModified('subCategories');
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       try {
         if (!req.file) return res.status(400).json({ error: 'No image provided' });
-        const url = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+        const url = await saveImageLocally(req.file.buffer, req.file.originalname);
         res.json({ url });
       } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -2294,7 +2294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const receivedKB = (file.buffer.length / 1024).toFixed(1);
             const receivedMB = (file.buffer.length / 1024 / 1024).toFixed(2);
             console.log(`[Upload] Server received: ${file.originalname} — ${receivedMB} MB (${receivedKB} KB) — mimetype: ${file.mimetype}`);
-            const url = await uploadToCloudinary(file.buffer, file.originalname);
+            const url = await saveImageLocally(file.buffer, file.originalname);
             return { url, receivedBytes: file.buffer.length, receivedMB: parseFloat(receivedMB) };
           })
         );
@@ -4159,7 +4159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (!req.file) return res.status(400).json({ error: 'No image provided' });
         const oldUrl = req.body.oldUrl || "";
-        const url = await uploadToCloudinary(req.file.buffer, req.file.originalname, oldUrl);
+        const url = await saveImageLocally(req.file.buffer, req.file.originalname, oldUrl);
         res.json({ url });
       } catch (error: any) {
         res.status(500).json({ error: error.message });
