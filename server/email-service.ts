@@ -1,14 +1,13 @@
 import nodemailer from "nodemailer";
 
 const ADMIN_EMAIL = "ramanifashion2026@gmail.com";
+const GMAIL_USER = process.env.GMAIL_USER || "ramanifashion2026@gmail.com";
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "jiklrptppoitanrp";
 
 function getTransporter() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) return null;
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user, pass },
+    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
   });
 }
 
@@ -82,13 +81,9 @@ function buildOrderEmailHtml(order: any): string {
 
 export async function sendNewOrderEmail(order: any): Promise<void> {
   const transporter = getTransporter();
-  if (!transporter) {
-    console.log("[Email] GMAIL_USER / GMAIL_APP_PASSWORD not set — skipping order email.");
-    return;
-  }
   try {
     await transporter.sendMail({
-      from: `"Ramani Fashion" <${process.env.GMAIL_USER}>`,
+      from: `"Ramani Fashion" <${GMAIL_USER}>`,
       to: ADMIN_EMAIL,
       subject: `New Order ${order.orderNumber} — ₹${(order.totalAmount || 0).toLocaleString("en-IN")}`,
       html: buildOrderEmailHtml(order),
