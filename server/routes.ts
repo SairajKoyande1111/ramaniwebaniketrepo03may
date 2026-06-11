@@ -3378,6 +3378,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Excel export — MUST be before /:id route
+  app.get("/api/admin/orders/export/excel", authenticateAdmin, async (req, res) => {
+    try {
+      const orders = await Order.find({ paymentStatus: 'paid' })
+        .populate('userId', 'name email phone')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const rows = orders.map((o: any) => {
+        const addr = o.shippingAddress || {};
+        const itemsText = (o.items || [])
+          .map((it: any) => `${it.name}${it.selectedColor ? ' [' + it.selectedColor + ']' : ''}${it.selectedSize ? ' Sz:' + it.selectedSize : ''} x${it.quantity} @₹${it.price}`)
+          .join(' | ');
+        return {
+          'Order Number': o.orderNumber || '',
+          'Date': o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '',
+          'Customer Name': o.userId?.name || addr.fullName || '',
+          'Customer Phone': o.userId?.phone || addr.phone || '',
+          'Customer Email': o.userId?.email || '',
+          'Items': itemsText,
+          'Subtotal (₹)': o.subtotal || 0,
+          'Shipping (₹)': o.shippingCharges || 0,
+          'Discount (₹)': o.discount || 0,
+          'Total (₹)': o.total || 0,
+          'Payment Method': o.paymentMethod || '',
+          'Payment Status': o.paymentStatus || '',
+          'Order Status': o.orderStatus || '',
+          'PhonePe Txn ID': o.phonePeTransactionId || '',
+          'Shipping Name': addr.fullName || '',
+          'Shipping Address': [addr.address, addr.locality].filter(Boolean).join(', '),
+          'City': addr.city || '',
+          'State': addr.state || '',
+          'Pincode': addr.pincode || '',
+          'Refund Status': o.refundStatus || 'na',
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const colWidths = [
+        { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 15 }, { wch: 28 },
+        { wch: 60 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+        { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 26 },
+        { wch: 22 }, { wch: 32 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 14 },
+      ];
+      ws['!cols'] = colWidths;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Paid Orders');
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      const filename = `ramani-paid-orders-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buf);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/admin/orders/:id", authenticateAdmin, async (req, res) => {
     try {
       const order = await Order.findById(req.params.id)
@@ -3746,7 +3804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/orders/:id/reject", authenticateAdmin, async (req, res) => {
     try {
-      const { reason } = req.body;
+      const { reason, refundDone, refundNote } = req.body;
       const order = await Order.findById(req.params.id);
       
       if (!order) {
@@ -3766,7 +3824,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       order.rejectedAt = new Date();
       order.rejectionReason = reason || 'No reason provided';
       order.updatedAt = new Date();
-      
+
+      // Track refund status for paid online orders
+      const isPaidOnline = (order as any).paymentStatus === 'paid' && (order as any).paymentMethod !== 'cod';
+      if (isPaidOnline) {
+        (order as any).refundStatus = refundDone ? 'done' : 'pending';
+        if (refundNote) (order as any).refundNote = refundNote;
+        if (refundDone) {
+          (order as any).refundDoneAt = new Date();
+          (order as any).refundDoneBy = req.admin.username;
+        }
+      } else {
+        (order as any).refundStatus = 'na';
+      }
+
       await order.save();
 
       // Send "Order Cancellation" SMS
@@ -3876,6 +3947,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await order.save();
       const populatedOrder = await Order.findById(order._id).populate('userId', 'name email phone').lean();
       res.json(populatedOrder);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id/refund-status", authenticateAdmin, async (req, res) => {
+    try {
+      const { refundStatus, refundNote } = req.body;
+      if (!['pending', 'done'].includes(refundStatus)) {
+        return res.status(400).json({ error: 'Invalid refund status' });
+      }
+      const order = await Order.findById(req.params.id);
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+      (order as any).refundStatus = refundStatus;
+      if (refundNote !== undefined) (order as any).refundNote = refundNote;
+      if (refundStatus === 'done') {
+        (order as any).refundDoneAt = new Date();
+        (order as any).refundDoneBy = req.admin.username;
+      }
+      order.updatedAt = new Date();
+      await order.save();
+      const populatedOrder = await Order.findById(order._id).populate('userId', 'name email phone').lean();
+      res.json(populatedOrder);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/orders/:id", authenticateAdmin, async (req, res) => {
+    try {
+      const order = await Order.findById(req.params.id);
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+
+      // Restore inventory only if it was previously deducted
+      if ((order as any).inventoryDeducted) {
+        for (const item of order.items) {
+          try {
+            const product = await Product.findById(item.productId);
+            if (product) {
+              (product as any).updatedAt = new Date();
+              if (item.selectedSize && (product as any).category === 'BLOUSES') {
+                const matchedVariant = item.selectedColor
+                  ? (product as any).colorVariants?.find((v: any) => v.color === item.selectedColor)
+                  : (product as any).colorVariants?.[0];
+                if (matchedVariant?.blouseSizes?.length) {
+                  const sizeEntry = matchedVariant.blouseSizes.find((s: any) => s.size === item.selectedSize);
+                  if (sizeEntry) sizeEntry.stockQuantity = (sizeEntry.stockQuantity || 0) + item.quantity;
+                  matchedVariant.stockQuantity = matchedVariant.blouseSizes.reduce((sum: number, s: any) => sum + (s.stockQuantity || 0), 0);
+                  matchedVariant.inStock = matchedVariant.stockQuantity > 0;
+                }
+                if ((product as any).colorVariants?.length > 0) {
+                  const total = (product as any).colorVariants.reduce((sum: number, v: any) => sum + (v.stockQuantity || 0), 0);
+                  (product as any).stockQuantity = total;
+                  (product as any).inStock = total > 0;
+                }
+              } else if ((product as any).colorVariants?.length > 0) {
+                const variant = item.selectedColor
+                  ? (product as any).colorVariants.find((v: any) => v.color === item.selectedColor)
+                  : null;
+                if (variant) {
+                  variant.stockQuantity = (variant.stockQuantity || 0) + item.quantity;
+                  variant.inStock = variant.stockQuantity > 0;
+                } else {
+                  for (const v of (product as any).colorVariants) {
+                    v.stockQuantity = (v.stockQuantity || 0) + item.quantity;
+                    v.inStock = v.stockQuantity > 0;
+                  }
+                }
+                const total = (product as any).colorVariants.reduce((sum: number, v: any) => sum + (v.stockQuantity || 0), 0);
+                (product as any).stockQuantity = total;
+                (product as any).inStock = total > 0;
+              } else {
+                const newQty = ((product as any).stockQuantity || 0) + item.quantity;
+                (product as any).stockQuantity = newQty;
+                (product as any).inStock = newQty > 0;
+              }
+              await product.save();
+            }
+          } catch (invErr: any) {
+            console.error(`Failed to restore inventory for product ${item.productId}:`, invErr.message);
+          }
+        }
+      }
+
+      await Order.findByIdAndDelete(req.params.id);
+      res.json({ success: true, message: 'Order deleted and inventory restored.' });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

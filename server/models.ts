@@ -230,6 +230,10 @@ const orderSchema = new Schema({
   rejectedBy: { type: String },
   rejectedAt: { type: Date },
   rejectionReason: { type: String },
+  refundStatus: { type: String, enum: ['na', 'pending', 'done'], default: 'na' },
+  refundNote: { type: String },
+  refundDoneAt: { type: Date },
+  refundDoneBy: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
