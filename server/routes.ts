@@ -13,6 +13,7 @@ import { upload, mediaUpload } from "./upload-config";
 import { saveImageLocally, deleteLocalImages, extractProductImageUrls, extractCategoryImageUrls } from "./cloudinary-service";
 import { sendSMSOTP, generateOTP, sendOrderConfirmationSMS, sendPaymentFailureSMS, sendOrderAcceptedSMS, sendOrderCancelledSMS, sendOrderShippedSMS, sendOrderDeliveredSMS } from "./sms-service";
 import { sendOrderConfirmation } from "./whatsapp-service";
+import { sendNewOrderEmail } from "./email-service";
 import { phonePeService } from "./phonepe-service";
 import { shiprocketService } from "./shiprocket.service";
 
@@ -1630,6 +1631,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       await order.save();
+
+      // Send email notification to admin
+      sendNewOrderEmail(order).catch(() => {});
 
       // For COD orders: deduct inventory immediately.
       // For PhonePe orders: inventory is deducted only after payment is confirmed (see payment callback/webhook).

@@ -2,6 +2,7 @@ interface CartItem {
   productId: string;
   quantity: number;
   selectedColor?: string;
+  selectedSize?: string;
 }
 
 interface LocalCart {
@@ -32,87 +33,60 @@ export const localStorageService = {
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   },
 
-  addToCart(productId: string, quantity: number = 1, selectedColor?: string): void {
+  addToCart(productId: string, quantity: number = 1, selectedColor?: string, selectedSize?: string): void {
     const baseProductId = productId.includes('_variant_') 
       ? productId.split('_variant_')[0] 
       : productId;
-    
-    console.log('➕ addToCart called with:', { originalProductId: productId, baseProductId, quantity, selectedColor });
     
     const cart = this.getCart();
     const existingItem = cart.items.find(
       item => {
         const productMatch = item.productId === baseProductId;
         const colorMatch = (item.selectedColor || undefined) === (selectedColor || undefined);
-        return productMatch && colorMatch;
+        const sizeMatch = (item.selectedSize || undefined) === (selectedSize || undefined);
+        return productMatch && colorMatch && sizeMatch;
       }
     );
     
     if (existingItem) {
       existingItem.quantity += quantity;
-      console.log('✅ Updated existing cart item:', existingItem);
     } else {
-      cart.items.push({ productId: baseProductId, quantity, selectedColor });
-      console.log('✅ Added new cart item');
+      cart.items.push({ productId: baseProductId, quantity, selectedColor, selectedSize });
     }
     
     this.setCart(cart);
   },
 
-  updateCartQuantity(productId: string, quantity: number, selectedColor?: string): void {
-    console.log('🔧 updateCartQuantity called with:', { productId, quantity, selectedColor });
+  updateCartQuantity(productId: string, quantity: number, selectedColor?: string, selectedSize?: string): void {
     const cart = this.getCart();
-    console.log('📦 Current cart items:', cart.items);
     
     const item = cart.items.find(
       item => {
         const productMatch = item.productId === productId;
         const colorMatch = (item.selectedColor || undefined) === (selectedColor || undefined);
-        console.log('🔍 Checking item:', { 
-          itemProductId: item.productId, 
-          itemColor: item.selectedColor,
-          productMatch,
-          colorMatch
-        });
-        return productMatch && colorMatch;
+        const sizeMatch = (item.selectedSize || undefined) === (selectedSize || undefined);
+        return productMatch && colorMatch && sizeMatch;
       }
     );
     
-    console.log('✅ Found item:', item);
     if (item) {
       item.quantity = quantity;
       this.setCart(cart);
-      console.log('💾 Cart updated successfully');
-    } else {
-      console.error('❌ Item not found in cart!');
     }
   },
 
-  removeFromCart(productId: string, selectedColor?: string): void {
-    console.log('🗑️ removeFromCart called with:', { productId, selectedColor });
+  removeFromCart(productId: string, selectedColor?: string, selectedSize?: string): void {
     const cart = this.getCart();
-    console.log('📦 Current cart items before removal:', cart.items);
     
-    const initialLength = cart.items.length;
     cart.items = cart.items.filter(
       item => {
         const productMatch = item.productId === productId;
         const colorMatch = (item.selectedColor || undefined) === (selectedColor || undefined);
-        const shouldRemove = productMatch && colorMatch;
-        console.log('🔍 Checking item for removal:', { 
-          itemProductId: item.productId, 
-          itemColor: item.selectedColor,
-          productMatch,
-          colorMatch,
-          shouldRemove,
-          keepItem: !shouldRemove
-        });
-        return !shouldRemove;
+        const sizeMatch = (item.selectedSize || undefined) === (selectedSize || undefined);
+        return !(productMatch && colorMatch && sizeMatch);
       }
     );
     
-    console.log('📦 Cart items after filter:', cart.items);
-    console.log(`📊 Removed ${initialLength - cart.items.length} items`);
     this.setCart(cart);
   },
 

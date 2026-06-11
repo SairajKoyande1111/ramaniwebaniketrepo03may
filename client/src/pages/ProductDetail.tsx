@@ -743,35 +743,45 @@ export default function ProductDetail() {
                   Available Colors:
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  {colorVariants.map((variant: any, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => handleColorChange(index)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-md border-2 transition-all ${
-                        selectedColorIndex === index
-                          ? "border-primary shadow-sm"
-                          : "border-border hover-elevate"
-                      }`}
-                      data-testid={`button-color-variant-${index}`}
-                    >
-                      <div className="w-16 h-20 rounded-md overflow-hidden bg-card">
-                        {variant.images && variant.images[0] && (
-                          <img
-                            src={variant.images[0]}
-                            alt={variant.color}
-                            className="w-full h-full object-cover"
-                            data-testid={`img-color-variant-${index}`}
-                          />
-                        )}
-                      </div>
-                      <span
-                        className="text-xs font-medium text-foreground"
-                        data-testid={`text-color-${index}`}
+                  {colorVariants.map((variant: any, index: number) => {
+                    const isVariantSoldOut = variant.stockQuantity !== undefined && variant.stockQuantity <= 0;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleColorChange(index)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-md border-2 transition-all ${
+                          selectedColorIndex === index
+                            ? "border-primary shadow-sm"
+                            : "border-border hover-elevate"
+                        }`}
+                        data-testid={`button-color-variant-${index}`}
                       >
-                        {variant.color}
-                      </span>
-                    </button>
-                  ))}
+                        <div className="w-16 h-20 rounded-md overflow-hidden bg-card relative">
+                          {variant.images && variant.images[0] && (
+                            <img
+                              src={variant.images[0]}
+                              alt={variant.color}
+                              className={`w-full h-full object-cover ${isVariantSoldOut ? 'blur-[2px] opacity-60' : ''}`}
+                              data-testid={`img-color-variant-${index}`}
+                            />
+                          )}
+                          {isVariantSoldOut && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded text-center leading-tight">
+                                SOLD<br/>OUT
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          className={`text-xs font-medium ${isVariantSoldOut ? 'text-muted-foreground line-through' : 'text-foreground'}`}
+                          data-testid={`text-color-${index}`}
+                        >
+                          {variant.color}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

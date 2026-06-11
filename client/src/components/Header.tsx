@@ -161,12 +161,12 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onMenuClick }
     }
   };
 
-  // Handle product click from search results
-  const handleProductClick = (productId: string) => {
+  // Handle product click from search results — navigate to base product page
+  const handleProductClick = (productId: string, baseProductId?: string) => {
     setShowDropdown(false);
     setSearchQuery("");
     setSearchResults([]);
-    setLocation(`/product/${productId}`);
+    setLocation(`/product/${baseProductId || productId}`);
   };
 
   // Handle search submit (Enter key or search all)
@@ -638,7 +638,7 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onMenuClick }
                       {searchResults.map((product) => (
                         <button
                           key={product._id}
-                          onClick={() => handleProductClick(product._id)}
+                          onClick={() => handleProductClick(product._id, product.baseProductId)}
                           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
                           data-testid={`search-result-${product._id}`}
                         >

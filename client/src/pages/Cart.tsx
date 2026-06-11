@@ -49,12 +49,12 @@ export default function Cart() {
   }, [token]);
 
   const updateQuantityMutation = useMutation({
-    mutationFn: ({ productId, quantity, selectedColor }: { productId: string; quantity: number; selectedColor?: string }) => {
+    mutationFn: ({ productId, quantity, selectedColor, selectedSize }: { productId: string; quantity: number; selectedColor?: string; selectedSize?: string }) => {
       if (!token) {
-        localStorageService.updateCartQuantity(productId, quantity, selectedColor);
+        localStorageService.updateCartQuantity(productId, quantity, selectedColor, selectedSize);
         return Promise.resolve();
       }
-      return apiRequest(`/api/cart/${productId}`, "PUT", { quantity, selectedColor });
+      return apiRequest(`/api/cart/${productId}`, "PUT", { quantity, selectedColor, selectedSize });
     },
     onSuccess: () => {
       if (token) {
@@ -80,12 +80,12 @@ export default function Cart() {
   });
 
   const removeItemMutation = useMutation({
-    mutationFn: ({ productId, selectedColor }: { productId: string; selectedColor?: string }) => {
+    mutationFn: ({ productId, selectedColor, selectedSize }: { productId: string; selectedColor?: string; selectedSize?: string }) => {
       if (!token) {
-        localStorageService.removeFromCart(productId, selectedColor);
+        localStorageService.removeFromCart(productId, selectedColor, selectedSize);
         return Promise.resolve();
       }
-      return apiRequest(`/api/cart/${productId}`, "DELETE", { selectedColor });
+      return apiRequest(`/api/cart/${productId}`, "DELETE", { selectedColor, selectedSize });
     },
     onSuccess: () => {
       if (token) {
@@ -184,25 +184,39 @@ export default function Cart() {
                 || "/default-saree.jpg";
               
               return (
-              <Card key={`${item.productId?._id}-${item.selectedColor || 'default'}`}>
+              <Card key={`${item.productId?._id}-${item.selectedColor || 'default'}-${item.selectedSize || 'nosize'}`}>
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <img
                       src={displayImage}
                       alt={product?.name}
-                      className="w-24 h-32 object-cover rounded-md"
+                      className="w-24 h-32 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity"
                       data-testid={`img-product-${product?._id}`}
                       onError={(e) => { e.currentTarget.src = '/default-saree.jpg'; }}
+                      onClick={() => product?._id && setLocation(`/product/${product._id}`)}
                     />
                     
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2" data-testid={`text-product-name-${product?._id}`}>
+                      <h3
+                        className="font-semibold mb-2 cursor-pointer hover:text-primary transition-colors"
+                        data-testid={`text-product-name-${product?._id}`}
+                        onClick={() => product?._id && setLocation(`/product/${product._id}`)}
+                      >
                         {product?.name}
                       </h3>
                       
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {product?.fabric && <span>{product.fabric} • </span>}
-                        {item.selectedColor && <span className="font-medium text-foreground">{item.selectedColor}</span>}
+                      <div className="text-sm text-muted-foreground mb-2 flex flex-wrap gap-1.5 items-center">
+                        {product?.fabric && <span>{product.fabric}</span>}
+                        {item.selectedColor && (
+                          <span className="inline-flex items-center gap-1 font-medium text-foreground bg-muted px-2 py-0.5 rounded-full text-xs">
+                            {item.selectedColor}
+                          </span>
+                        )}
+                        {item.selectedSize && (
+                          <span className="inline-flex items-center gap-1 font-medium text-foreground bg-muted px-2 py-0.5 rounded-full text-xs">
+                            Size: {item.selectedSize}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -225,13 +239,15 @@ export default function Cart() {
                               if (item.quantity <= 1) {
                                 removeItemMutation.mutate({
                                   productId: item.productId._id,
-                                  selectedColor: item.selectedColor
+                                  selectedColor: item.selectedColor,
+                                  selectedSize: item.selectedSize
                                 });
                               } else {
                                 updateQuantityMutation.mutate({
                                   productId: item.productId._id,
                                   quantity: item.quantity - 1,
-                                  selectedColor: item.selectedColor
+                                  selectedColor: item.selectedColor,
+                                  selectedSize: item.selectedSize
                                 });
                               }
                             }}
@@ -249,7 +265,8 @@ export default function Cart() {
                             onClick={() => updateQuantityMutation.mutate({
                               productId: item.productId._id,
                               quantity: item.quantity + 1,
-                              selectedColor: item.selectedColor
+                              selectedColor: item.selectedColor,
+                              selectedSize: item.selectedSize
                             })}
                             disabled={updateQuantityMutation.isPending || item.quantity >= (product?.stockQuantity ?? 999)}
                             data-testid={`button-increase-${item.productId?._id}`}
@@ -263,7 +280,8 @@ export default function Cart() {
                           size="sm"
                           onClick={() => removeItemMutation.mutate({ 
                             productId: item.productId._id,
-                            selectedColor: item.selectedColor
+                            selectedColor: item.selectedColor,
+                            selectedSize: item.selectedSize
                           })}
                           disabled={removeItemMutation.isPending}
                           data-testid={`button-remove-${item.productId?._id}`}

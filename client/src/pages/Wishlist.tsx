@@ -180,7 +180,16 @@ export default function Wishlist() {
                     src={displayImage}
                     alt={product.name}
                     className="w-full h-72 object-cover cursor-pointer"
-                    onClick={() => setLocation(`/product/${productId}`)}
+                    onClick={() => {
+                      if (selectedColor && product.colorVariants) {
+                        const colorIndex = product.colorVariants.findIndex((v: any) => v.color === selectedColor);
+                        if (colorIndex >= 0) {
+                          setLocation(`/product/${productId}_variant_${colorIndex}`);
+                          return;
+                        }
+                      }
+                      setLocation(`/product/${productId}`);
+                    }}
                     data-testid={`img-product-${productId}`}
                     onError={(e) => { e.currentTarget.src = '/default-saree.jpg'; }}
                   />
@@ -209,7 +218,16 @@ export default function Wishlist() {
                 <div className="flex flex-col flex-1 p-4">
                   <h3
                     className="font-semibold text-base mb-1 line-clamp-2 cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setLocation(`/product/${productId}`)}
+                    onClick={() => {
+                      if (selectedColor && product.colorVariants) {
+                        const colorIndex = product.colorVariants.findIndex((v: any) => v.color === selectedColor);
+                        if (colorIndex >= 0) {
+                          setLocation(`/product/${productId}_variant_${colorIndex}`);
+                          return;
+                        }
+                      }
+                      setLocation(`/product/${productId}`);
+                    }}
                     data-testid={`text-product-name-${productId}`}
                   >
                     {product.name}

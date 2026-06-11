@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Eye, Package, CheckCircle, XCircle, PackageCheck, Banknote, TrendingUp, Clock, Loader2, IndianRupee } from "lucide-react";
+import { Search, Eye, Package, CheckCircle, XCircle, PackageCheck, Banknote, TrendingUp, Clock, Loader2, IndianRupee, Copy, CopyCheck } from "lucide-react";
 
 interface Order {
   _id: string;
@@ -131,6 +131,7 @@ export default function OrderManagement() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectionInput, setShowRejectionInput] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -572,7 +573,35 @@ export default function OrderManagement() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Shipping Address</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Shipping Address</p>
+                      <button
+                        onClick={() => {
+                          const a = selectedOrder.shippingAddress;
+                          const parts = [
+                            a.fullName,
+                            a.address,
+                            a.locality,
+                            a.landmark ? `Landmark: ${a.landmark}` : null,
+                            `${a.city}, ${a.state} – ${a.pincode}`,
+                            `Phone: ${a.phone}`
+                          ].filter(Boolean);
+                          navigator.clipboard.writeText(parts.join('\n'));
+                          setAddressCopied(true);
+                          setTimeout(() => setAddressCopied(false), 2000);
+                        }}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                        title="Copy shipping address"
+                        data-testid="button-copy-address"
+                      >
+                        {addressCopied ? (
+                          <CopyCheck className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {addressCopied ? <span className="text-green-500">Copied!</span> : <span>Copy</span>}
+                      </button>
+                    </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-0.5">
                       <p className="font-semibold">{selectedOrder.shippingAddress.fullName}</p>
                       <p className="text-muted-foreground">{selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.locality}</p>

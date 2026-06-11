@@ -287,14 +287,10 @@ export default function ProductCard({
         )}
       </div>
 
-      <CardContent className="p-2 md:p-3 flex flex-col flex-shrink-0" style={{ minHeight: '100px' }}>
+      <CardContent className="p-2 md:p-3 flex flex-col flex-shrink-0">
         <h3 className="font-medium text-xs md:text-sm line-clamp-2 leading-snug mb-1" data-testid={`text-product-name-${id}`}>
           {name}
         </h3>
-
-        <p className="text-xs text-muted-foreground line-clamp-1 mb-1" data-testid={`text-short-description-${id}`}>
-          {displayShortDescription || "\u00A0"}
-        </p>
 
         <div className="flex items-center gap-1.5 flex-wrap mt-auto">
           <span className="text-sm md:text-base font-bold text-black" data-testid={`text-price-${id}`}>
