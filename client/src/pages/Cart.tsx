@@ -35,7 +35,7 @@ export default function Cart() {
         const productPromises = localCart.items.map(async (item) => {
           const response = await fetch(`/api/products/${item.productId}`);
           const product = await response.json();
-          return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor };
+          return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor, selectedSize: item.selectedSize };
         });
         const items = await Promise.all(productPromises);
         setGuestCart({ items });
@@ -65,7 +65,7 @@ export default function Cart() {
           const productPromises = localCart.items.map(async (item) => {
             const response = await fetch(`/api/products/${item.productId}`);
             const product = await response.json();
-            return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor };
+            return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor, selectedSize: item.selectedSize };
           });
           const items = await Promise.all(productPromises);
           setGuestCart({ items });
@@ -96,7 +96,7 @@ export default function Cart() {
           const productPromises = localCart.items.map(async (item) => {
             const response = await fetch(`/api/products/${item.productId}`);
             const product = await response.json();
-            return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor };
+            return { productId: product, quantity: item.quantity, selectedColor: item.selectedColor, selectedSize: item.selectedSize };
           });
           const items = await Promise.all(productPromises);
           setGuestCart({ items });
