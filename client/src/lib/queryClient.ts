@@ -36,7 +36,19 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res.json();
+
+  // 204 No Content — nothing to parse
+  if (res.status === 204) return null;
+
+  const text = await res.text();
+  if (!text || text.trim() === '') return null;
+
+  // Guard against HTML error pages leaking through (e.g. Vite dev fallback)
+  if (text.trimStart().startsWith('<')) {
+    throw new Error(`Server returned HTML for ${method} ${url} — route may not be registered`);
+  }
+
+  return JSON.parse(text);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

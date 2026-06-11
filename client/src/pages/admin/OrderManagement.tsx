@@ -176,10 +176,17 @@ export default function OrderManagement() {
   const updateRefundMutation = useMutation({
     mutationFn: ({ orderId, refundStatus, refundNote }: { orderId: string; refundStatus: string; refundNote: string }) =>
       apiRequest(`/api/admin/orders/${orderId}/refund-status`, "PATCH", { refundStatus, refundNote }),
-    onSuccess: (data) => {
+    onSuccess: (data: { success: boolean; refundStatus: string; refundNote: string; refundDoneAt: string | null; refundDoneBy: string | null }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
-      toast({ title: "Refund status updated!" });
-      setSelectedOrder(data);
+      toast({ title: data.refundStatus === 'done' ? "Marked as refunded!" : "Refund status updated!" });
+      // Merge updated refund fields into selectedOrder locally — no full re-fetch needed
+      setSelectedOrder(prev => prev ? {
+        ...prev,
+        refundStatus: data.refundStatus as any,
+        refundNote: data.refundNote,
+        refundDoneAt: data.refundDoneAt || undefined,
+        refundDoneBy: data.refundDoneBy || undefined,
+      } : prev);
     },
     onError: (error: any) => toast({ title: "Error", description: error.message, variant: "destructive" }),
   });

@@ -3962,14 +3962,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) return res.status(404).json({ error: 'Order not found' });
       (order as any).refundStatus = refundStatus;
       if (refundNote !== undefined) (order as any).refundNote = refundNote;
+      const now = new Date();
+      const doneBy = req.admin.username;
       if (refundStatus === 'done') {
-        (order as any).refundDoneAt = new Date();
-        (order as any).refundDoneBy = req.admin.username;
+        (order as any).refundDoneAt = now;
+        (order as any).refundDoneBy = doneBy;
+      } else {
+        (order as any).refundDoneAt = undefined;
+        (order as any).refundDoneBy = undefined;
       }
-      order.updatedAt = new Date();
+      order.updatedAt = now;
       await order.save();
-      const populatedOrder = await Order.findById(order._id).populate('userId', 'name email phone').lean();
-      res.json(populatedOrder);
+      // Return only the fields the frontend needs — avoids Mixed-type serialization issues
+      res.json({
+        success: true,
+        refundStatus,
+        refundNote: (order as any).refundNote || '',
+        refundDoneAt: refundStatus === 'done' ? now.toISOString() : null,
+        refundDoneBy: refundStatus === 'done' ? doneBy : null,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
