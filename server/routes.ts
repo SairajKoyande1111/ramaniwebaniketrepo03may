@@ -349,7 +349,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (maxPrice) query.price.$lte = Number(maxPrice);
       }
       if (search) {
-        query.$text = { $search: search as string };
+        const searchRegex = new RegExp((search as string).trim(), 'i');
+        if (!query.$and) query.$and = [];
+        query.$and.push({ $or: [
+          { name: searchRegex },
+          { category: searchRegex },
+          { description: searchRegex },
+          { fabric: searchRegex },
+          { occasion: searchRegex },
+        ]});
       }
 
       const pageNum = parseInt(page as string);
@@ -2099,7 +2107,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (search) {
-        query.$text = { $search: search as string };
+        const searchRegex = new RegExp((search as string).trim(), 'i');
+        if (!query.$and) query.$and = [];
+        query.$and.push({ $or: [
+          { name: searchRegex },
+          { category: searchRegex },
+          { description: searchRegex },
+          { fabric: searchRegex },
+          { occasion: searchRegex },
+        ]});
       }
 
       // Use aggregation to get min and max prices

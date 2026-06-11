@@ -49,6 +49,7 @@ export default function Products() {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [isTrending, setIsTrending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [mainCategoryParam, setMainCategoryParam] = useState<string>("");
   const [openSections, setOpenSections] = useState<string[]>(["categories", "price", "color"]);
 
@@ -103,11 +104,12 @@ export default function Products() {
 
   // Dynamic page title
   const pageTitle = useMemo(() => {
+    if (searchQuery) return `Search: "${searchQuery}"`;
     if (selectedCategories.length === 1) return selectedCategories[0];
     if (selectedCategories.length > 1) return "Multiple Categories";
     if (activeMainCategory) return `All ${activeMainCategory.name.charAt(0) + activeMainCategory.name.slice(1).toLowerCase()}`;
     return "All Products";
-  }, [selectedCategories, activeMainCategory]);
+  }, [searchQuery, selectedCategories, activeMainCategory]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(searchString);
@@ -129,6 +131,9 @@ export default function Products() {
     
     const trendingParam = urlParams.get('isTrending');
     setIsTrending(trendingParam === 'true');
+
+    const searchParam = urlParams.get('search');
+    setSearchQuery(searchParam || "");
     
     setPage(1);
     
@@ -177,6 +182,9 @@ export default function Products() {
   }
   if (isTrending) {
     queryParams.append("isTrending", "true");
+  }
+  if (searchQuery) {
+    queryParams.append("search", searchQuery);
   }
   queryParams.append("inStock", "false");
 

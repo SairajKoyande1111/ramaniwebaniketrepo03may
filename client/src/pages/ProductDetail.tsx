@@ -265,7 +265,7 @@ export default function ProductDetail() {
         const currentColorVariant =
           colorVariants && colorVariants[selectedColorIndex];
         const selectedColor = currentColorVariant?.color;
-        localStorageService.addToCart(product._id, quantity, selectedColor);
+        localStorageService.addToCart(product._id, quantity, selectedColor, selectedBlouseSize || undefined);
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
         const colorInfo = selectedColor ? ` (${selectedColor})` : "";
         const sizeInfo = selectedBlouseSize ? ` - Size ${selectedBlouseSize}` : "";
