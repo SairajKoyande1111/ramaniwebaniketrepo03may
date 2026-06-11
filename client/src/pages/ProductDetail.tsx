@@ -744,7 +744,7 @@ export default function ProductDetail() {
                 </h3>
                 <div className="flex flex-wrap gap-3">
                   {colorVariants.map((variant: any, index: number) => {
-                    const isVariantSoldOut = variant.stockQuantity !== undefined && variant.stockQuantity <= 0;
+                    const isVariantSoldOut = variant.inStock === false || (variant.stockQuantity !== undefined && variant.stockQuantity <= 0);
                     return (
                       <button
                         key={index}

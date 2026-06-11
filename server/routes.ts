@@ -1213,14 +1213,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/cart/:productId", authenticateToken, async (req, res) => {
     try {
-      const { quantity, selectedColor } = req.body;
+      const { quantity, selectedColor, selectedSize } = req.body;
       const userId = (req as any).user.userId;
       const { productId } = req.params;
 
       const product = await Product.findById(productId).lean();
       if (product) {
         let availableStock: number;
-        if (selectedColor && (product as any).colorVariants?.length > 0) {
+        if (selectedSize && (product as any).category === 'BLOUSES') {
+          const matchedVariant = selectedColor
+            ? (product as any).colorVariants?.find((v: any) => v.color === selectedColor)
+            : (product as any).colorVariants?.[0];
+          const variantBlouseSizes = matchedVariant?.blouseSizes?.length
+            ? matchedVariant.blouseSizes
+            : ((product as any).blouseSizes || []);
+          const sizeEntry = variantBlouseSizes.find((s: any) => s.size === selectedSize);
+          availableStock = sizeEntry?.stockQuantity ?? 0;
+        } else if (selectedColor && (product as any).colorVariants?.length > 0) {
           const variant = (product as any).colorVariants.find((v: any) => v.color === selectedColor);
           availableStock = variant?.stockQuantity ?? 0;
         } else {
@@ -1242,8 +1251,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = cart.items.find(
         (item: any) => {
           const productMatch = item.productId.toString() === productId;
-          const colorMatch = (item.selectedColor || undefined) === (selectedColor || undefined);
-          return productMatch && colorMatch;
+          const colorMatch = (item.selectedColor || null) === (selectedColor || null);
+          const sizeMatch = (item.selectedSize || null) === (selectedSize || null);
+          return productMatch && colorMatch && sizeMatch;
         }
       );
 
@@ -1266,7 +1276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req as any).user.userId;
       const { productId } = req.params;
-      const { selectedColor } = req.body;
+      const { selectedColor, selectedSize } = req.body;
 
       const cart = await Cart.findOne({ userId });
       if (!cart) {
@@ -1276,8 +1286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cart.items = cart.items.filter(
         (item: any) => {
           const productMatch = item.productId.toString() === productId;
-          const colorMatch = (item.selectedColor || undefined) === (selectedColor || undefined);
-          return !(productMatch && colorMatch);
+          const colorMatch = (item.selectedColor || null) === (selectedColor || null);
+          const sizeMatch = (item.selectedSize || null) === (selectedSize || null);
+          return !(productMatch && colorMatch && sizeMatch);
         }
       );
       cart.updatedAt = new Date();

@@ -1,0 +1,33 @@
+1. Product cards — description removed
+The short description text below the product name is gone. Cards are cleaner and more compact.
+
+2. Sold-out color variants — blur + "SOLD OUT" badge
+When a color variant has stockQuantity = 0, its thumbnail image is blurred and a pink "SOLD OUT" badge appears over it. The color name also gets a strikethrough, same as Amazon/Flipkart.
+
+3. Cart size bug — selectedSize tracked throughout
+CartItem now carries selectedSize. All cart operations (add, update, remove) match on product + color + size together, so different sizes of the same product no longer collide.
+
+4. Cart — click image/name → product page
+The product image and name in the cart are now clickable and navigate to /product/:id.
+
+5. Cart — size shown as badge
+If an item has a selected size, it's displayed as a pill badge alongside the color.
+
+6. Wishlist → correct color variant
+Clicking a product in the wishlist now navigates to /product/:id_variant_N where N is the index of the saved color, so the exact color is pre-selected on the product page.
+
+7. Admin sidebar — collapsible with toggle button
+A small circular pink button sits at the right edge of the sidebar (vertically centered). Click it to collapse/expand the sidebar — the main content area shifts accordingly.
+
+8. Admin orders — copy shipping address
+A "Copy" button (with a checkmark flash on success) appears next to the "Shipping Address" label. Clicking it copies the full address to the clipboard in one tap.
+
+9. Search → base product page
+Search results now navigate to the base product page (baseProductId) instead of the variant ID, so the full product detail page loads correctly.
+
+10. Email notifications on new orders
+An email is sent to ramanifashion2026@gmail.com for every new order. To activate it, add two secrets in Replit's Secrets panel:
+
+GMAIL_USER — your Gmail address (e.g. ramanifashion2026@gmail.com)
+GMAIL_APP_PASSWORD — a Gmail App Password (not your regular password)
+If these aren't set, orders still work normally — email just silently skips.

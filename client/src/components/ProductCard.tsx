@@ -292,7 +292,7 @@ export default function ProductCard({
           {name}
         </h3>
 
-        <div className="flex items-center gap-1.5 flex-wrap mt-auto">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm md:text-base font-bold text-black" data-testid={`text-price-${id}`}>
             ₹{price.toLocaleString()}
           </span>
