@@ -1,0 +1,30 @@
+root@srv1124203:~/RamanifashionV3# pm2 log 7
+[TAILING] Tailing last 15 lines for [7] process (change the value with --lines option)
+/root/.pm2/logs/ramaniV2-out-7.log last 15 lines:
+/root/.pm2/logs/ramaniV2-error-7.log last 15 lines:
+7|ramaniV2 | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+7|ramaniV2 | Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /root/RamanifashionV3/dist/index.js
+7|ramaniV2 |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+7|ramaniV2 |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+7|ramaniV2 |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+7|ramaniV2 |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+7|ramaniV2 |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+7|ramaniV2 |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+7|ramaniV2 |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+7|ramaniV2 |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49)
+
+^C
+root@srv1124203:~/RamanifashionV3# npm install nodemailer
+npm error code EAI_AGAIN
+npm error syscall getaddrinfo
+npm error errno EAI_AGAIN
+npm error request to http://package-firewall.replit.local/npm/@types/nodemailer/-/nodemailer-8.0.1.tgz failed, reason: getaddrinfo EAI_AGAIN package-firewall.replit.local
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-06-11T09_24_23_362Z-debug-0.log
+root@srv1124203:~/RamanifashionV3# ^C
+root@srv1124203:~/RamanifashionV3# npm install nodemailer --registry https://registry.npmjs.org
+npm error code EAI_AGAIN
+npm error syscall getaddrinfo
+npm error errno EAI_AGAIN
+npm error request to http://package-firewall.replit.local/npm/@types/nodemailer/-/nodemailer-8.0.1.tgz failed, reason: getaddrinfo EAI_AGAIN package-firewall.replit.local
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-06-11T09_27_27_247Z-debug-0.log
+root@srv1124203:~/RamanifashionV3#
