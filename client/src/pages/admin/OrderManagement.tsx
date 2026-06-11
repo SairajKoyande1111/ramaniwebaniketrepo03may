@@ -489,7 +489,7 @@ export default function OrderManagement() {
           setDetailDialogOpen(open);
           if (!open) { setShowRejectionInput(false); setRejectionReason(""); setRefundDoneOnReject(false); setRefundNoteOnReject(""); }
         }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className="text-lg font-bold flex items-center gap-3">
                 Order #{selectedOrder?.orderNumber}
